@@ -11,8 +11,42 @@
 
 
 
+* [linux命令帮助获取详解](#linux%E5%91%BD%E4%BB%A4%E5%B8%AE%E5%8A%A9%E8%8E%B7%E5%8F%96%E8%AF%A6%E8%A7%A3)
+  * [格式](#%E6%A0%BC%E5%BC%8F)
+  * [内部命令](#%E5%86%85%E9%83%A8%E5%91%BD%E4%BB%A4)
+  * [外部命令](#%E5%A4%96%E9%83%A8%E5%91%BD%E4%BB%A4)
+    * [man手册](#man%E6%89%8B%E5%86%8C)
+* [Linux的文件系统](#linux%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F)
+  * [根文件系统(rootfs)](#%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9Frootfs)
+  * [应用程序的组成部分](#%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E7%9A%84%E7%BB%84%E6%88%90%E9%83%A8%E5%88%86)
+* [BASH基础特性](#bash%E5%9F%BA%E7%A1%80%E7%89%B9%E6%80%A7)
+  * [命令历史history](#%E5%91%BD%E4%BB%A4%E5%8E%86%E5%8F%B2history)
+  * [命令hash](#%E5%91%BD%E4%BB%A4hash)
+  * [命令补全](#%E5%91%BD%E4%BB%A4%E8%A1%A5%E5%85%A8)
+  * [路径补全](#%E8%B7%AF%E5%BE%84%E8%A1%A5%E5%85%A8)
+  * [命令行展开](#%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%B1%95%E5%BC%80)
+  * [命令的执行结果状态](#%E5%91%BD%E4%BB%A4%E7%9A%84%E6%89%A7%E8%A1%8C%E7%BB%93%E6%9E%9C%E7%8A%B6%E6%80%81)
+  * [命令别名alias](#%E5%91%BD%E4%BB%A4%E5%88%AB%E5%90%8Dalias)
+  * [文件名通配 globbing](#%E6%96%87%E4%BB%B6%E5%90%8D%E9%80%9A%E9%85%8D-globbing)
+  * [快捷键](#%E5%BF%AB%E6%8D%B7%E9%94%AE)
+  * [提供了编程环境](#%E6%8F%90%E4%BE%9B%E4%BA%86%E7%BC%96%E7%A8%8B%E7%8E%AF%E5%A2%83)
+  * [bash的配置文件](#bash%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
+  * [bash的算术运算](#bash%E7%9A%84%E7%AE%97%E6%9C%AF%E8%BF%90%E7%AE%97)
+  * [bash的条件测试](#bash%E7%9A%84%E6%9D%A1%E4%BB%B6%E6%B5%8B%E8%AF%95)
+  * [bash自定义退出状态码](#bash%E8%87%AA%E5%AE%9A%E4%B9%89%E9%80%80%E5%87%BA%E7%8A%B6%E6%80%81%E7%A0%81)
+* [DNS and BIND](#dns-and-bind)
+  * [DNS服务介绍](#dns%E6%9C%8D%E5%8A%A1%E4%BB%8B%E7%BB%8D)
+  * [DNS服务器诞生由来](#dns%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%9E%E7%94%9F%E7%94%B1%E6%9D%A5)
+  * [区域解析库](#%E5%8C%BA%E5%9F%9F%E8%A7%A3%E6%9E%90%E5%BA%93)
+    * [RR类型：](#rr%E7%B1%BB%E5%9E%8B)
+    * [RR格式](#rr%E6%A0%BC%E5%BC%8F)
+  * [子域授权](#%E5%AD%90%E5%9F%9F%E6%8E%88%E6%9D%83)
+  * [BIND的安装配置](#bind%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE)
+* [日志系统rsyslog](#%E6%97%A5%E5%BF%97%E7%B3%BB%E7%BB%9Frsyslog)
+* [文本处理三剑客](#%E6%96%87%E6%9C%AC%E5%A4%84%E7%90%86%E4%B8%89%E5%89%91%E5%AE%A2)
+  * [grep](#grep)
+* [进程管理工具](#%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7)
 
-[TOC]
 
 
 
