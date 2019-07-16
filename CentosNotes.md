@@ -10,6 +10,7 @@
 
 
 
+---
 
 * [linux命令帮助获取详解](#linux%E5%91%BD%E4%BB%A4%E5%B8%AE%E5%8A%A9%E8%8E%B7%E5%8F%96%E8%AF%A6%E8%A7%A3)
   * [格式](#%E6%A0%BC%E5%BC%8F)
@@ -22,8 +23,7 @@
 * [BASH基础特性](#bash%E5%9F%BA%E7%A1%80%E7%89%B9%E6%80%A7)
   * [命令历史history](#%E5%91%BD%E4%BB%A4%E5%8E%86%E5%8F%B2history)
   * [命令hash](#%E5%91%BD%E4%BB%A4hash)
-  * [命令补全](#%E5%91%BD%E4%BB%A4%E8%A1%A5%E5%85%A8)
-  * [路径补全](#%E8%B7%AF%E5%BE%84%E8%A1%A5%E5%85%A8)
+  * [命令和路径补全](#%E5%91%BD%E4%BB%A4%E5%92%8C%E8%B7%AF%E5%BE%84%E8%A1%A5%E5%85%A8)
   * [命令行展开](#%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%B1%95%E5%BC%80)
   * [命令的执行结果状态](#%E5%91%BD%E4%BB%A4%E7%9A%84%E6%89%A7%E8%A1%8C%E7%BB%93%E6%9E%9C%E7%8A%B6%E6%80%81)
   * [命令别名alias](#%E5%91%BD%E4%BB%A4%E5%88%AB%E5%90%8Dalias)
@@ -34,6 +34,14 @@
   * [bash的算术运算](#bash%E7%9A%84%E7%AE%97%E6%9C%AF%E8%BF%90%E7%AE%97)
   * [bash的条件测试](#bash%E7%9A%84%E6%9D%A1%E4%BB%B6%E6%B5%8B%E8%AF%95)
   * [bash自定义退出状态码](#bash%E8%87%AA%E5%AE%9A%E4%B9%89%E9%80%80%E5%87%BA%E7%8A%B6%E6%80%81%E7%A0%81)
+* [CentOS启动流程](#centos%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)
+  * [LinuxOS：kernel \+ rootfs](#linuxoskernel--rootfs)
+  * [Linux内核特点](#linux%E5%86%85%E6%A0%B8%E7%89%B9%E7%82%B9)
+  * [CenOS启动流程](#cenos%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)
+  * [/sbin/init](#sbininit)
+    * [CentOS 5](#centos-5)
+    * [CentOS 6](#centos-6)
+  * [Grub](#grub)
 * [DNS and BIND](#dns-and-bind)
   * [DNS服务介绍](#dns%E6%9C%8D%E5%8A%A1%E4%BB%8B%E7%BB%8D)
   * [DNS服务器诞生由来](#dns%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%9E%E7%94%9F%E7%94%B1%E6%9D%A5)
@@ -46,8 +54,12 @@
 * [文本处理三剑客](#%E6%96%87%E6%9C%AC%E5%A4%84%E7%90%86%E4%B8%89%E5%89%91%E5%AE%A2)
   * [grep](#grep)
 * [进程管理工具](#%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7)
+* [计划任务](#%E8%AE%A1%E5%88%92%E4%BB%BB%E5%8A%A1)
+  * [at](#at)
+  * [batch](#batch)
+  * [cron](#cron)
 
-
+---
 
 
 
@@ -291,11 +303,9 @@ history #
 
 
 
-### 命令补全
+### 命令和路径补全
 
 
-
-### 路径补全
 
 
 
@@ -560,6 +570,532 @@ ctrl+a ctrl+e ctrl+u ctrl+k
 
 
 
+## CentOS启动流程
+
+
+
+### LinuxOS：kernel + rootfs
+
+每时每刻，OS要么执行内核代码，要么执行rootfs某个路径下的应用代码
+
+- kernel: 进程管理、内存管理、网络管理、驱动程序、文件系统、安全功能(selinux,权限功能)、
+- rootfs: 
+  (1)把系统调用封装在二进制界面，叫做glibc；
+  (2)根文件系统上最重要的是二进制程序文件。
+  - 库：函数集合,其实是功能模块 function,
+    任何功能有其调用接口，调用接口的名字称为函数名。
+    为了函数永远更灵活的功能，函数还能接受参数;
+    每一个库中有多少个函数，每一个函数能够接受多少参数，每一个参数是什么类型，都有一个文件加以描述，这个文件叫做头文件。
+    库也是二进制程序，但跟bin下应用程序二进制文件不同，库没有独立执行入口，只能被调用。
+    库有两种情形：调用完后有返回值(状态结果)，无返回值；无返回值的代码片段叫做过程调用，有返回值的叫函数调用。
+  - 程序
+    库或者内核本身都不能产生结果，需要在组织上一块运行才能产生结果，这就是应用程序。保证程序按照我们的需求运行才是根本。(配置文件)
+- 简要启动过程：
+  内核运行后，加载根文件系统，因为内核无论怎么运行，都不能满足用户的实际需要，所以内核要想办法去运行应用程序；
+  应用程序有千千万，所以内核委派一个使者(init)去管理。
+
+### Linux内核特点
+
+单内核设计(把所有功能集成于同一个程序)，支持模块化(内核模块.ko;用户模块.so)
+
+``` shell
+[root@pirate ~]# ls /boot/  
+config-2.6.32-696.el6.x86_64         lost+found
+efi                                  symvers-2.6.32-696.el6.x86_64.gz
+grub                                 System.map-2.6.32-696.el6.x86_64
+initramfs-2.6.32-696.el6.x86_64.img  vmlinuz-2.6.32-696.el6.x86_64
+[root@pirate ~]# ls -lh /boot/vmlinuz-2.6.32-696.el6.x86_64
+-rwxr-xr-x. 1 root root 4.1M 3月  22 2017 /boot/vmlinuz-2.6.32-696.el6.x86_64
+[root@pirate ~]# file /boot/vmlinuz-2.6.32-696.el6.x86_64
+/boot/vmlinuz-2.6.32-696.el6.x86_64: Linux kernel x86 boot executable bzImage, version 2.6.32-696.el6.x86_64 (mockbuil, RO-rootFS, swap_dev 0x4, Normal VGA
+[root@pirate ~]# ls /lib/modules/2.6.32-696.el6.x86_64/
+build              modules.dep          modules.networking  modules.symbols.bin
+extra              modules.dep.bin      modules.ofmap       modules.usbmap
+kernel             modules.drm          modules.order       source
+modules.alias      modules.ieee1394map  modules.pcimap      updates
+modules.alias.bin  modules.inputmap     modules.seriomap    vdso
+modules.block      modules.isapnpmap    modules.softdep     weak-updates
+modules.ccwmap     modules.modesetting  modules.symbols
+[root@pirate ~]# ls /lib/modules/2.6.32-696.el6.x86_64/kernel/
+arch  crypto  drivers  fs  kernel  lib  mm  net  sound
+[root@pirate ~]# du -sh /lib/modules/2.6.32-696.el6.x86_64/
+114M    /lib/modules/2.6.32-696.el6.x86_64/
+```
+
+- 组成部分：
+  1. 核心文件：/boot/vmlinuz-VERSION-release
+  2. ramdisk：非必要组件，但在很多场景中会用到；为内核提供(硬盘)驱动
+     CentOS 5: /boot/initrd-VERSION-release.img
+     CentOS 6: /boot/initramfs-VERSION-release.img
+  3. 模块文件：/lib/modules/VERSION-release
+
+### CenOS启动流程
+
+加电自检--> BootSequence (BIOS) --> Bootloader(MBR) --> kernel(ramdisk) --> rootfs(只读) --> init
+
+> 	init程序的类型：
+> 		SysV: init, CentOS 5  配置文件：/etc/inittab
+> 		Upstart: init, CentOS 6  配置文件：/etc/inittab, /etc/init/*.conf
+> 		Systemd：systemd, CentOS 7  配置文件：/usr/lib/systemd/system, /etc/systemd/system
+> 		
+>
+> 		ramdisk：
+> 		内核中的特性之一：使用缓冲和缓存来回事对磁盘上的文件访问；
+> 		
+> 		ramdisk --> ramfs
+> 		CentOS 5: initrd,  工具程序：mkinitrd
+> 		CentOS 6: initramfs， 工具程序：mkinitrd, dracut
+
+后续工作都交给init，init怎么做完全取决于其配置文件的定义。
+
+
+
+### /sbin/init
+
+#### CentOS 5
+
+- 运行级别：类似安全模式，为了系统的运行或维护等应用目的而设定
+
+  > 0-6：7个级别
+  > 0：关机
+  > 1：单用户模式(root, 无须登录), single, 维护模式；
+  > 2:   多用户模式，会启动网络功能，但不会启动NFS；维护模式；
+  > 3：多用户模式，正常模式；文本界面；
+  > 4：预留级别；可同3级别；
+  > 5：多用户模式，正常模式；图形界面；
+  > 6：重启
+
+  切换级别：init #
+  查看上一级别与当前级别：runlevel和who -r
+
+- **配置文件**：/etc/inittab
+
+  id:runlevel:action:process
+  每一行定义一种action以及与之对应的process
+
+  1. 各级别启动的服务
+  
+     si::sysinit:/etc/rc.d/rc.sysinit
+  
+     l0:0:wait:/etc/rc.d/rc 0
+     l1:1:wait:/etc/rc.d/rc 1
+     ...
+     l6:6:wait:/etc/rc.d/rc 6
+     
+     - 说明：rc 0 --> 意味着读取/etc/rc.d/rc0.d/
+       K*: K##*：##运行次序；数字越小，越先运行；数字越小的服务，通常为依赖到别的服务；
+       S*: S##*：##运行次序；数字越小，越先运行；数字越小的服务，通常为被依赖到的服务；
+     
+     - ``` 
+       [root@localhost ~]# ls /etc/rc.d/
+       init.d/     rc0.d/      rc2.d/      rc4.d/      rc6.d/      rc.sysinit
+       rc          rc1.d/      rc3.d/      rc5.d/      rc.local
+       ```
+     
+       init.d下是开机脚本，rc0-6是六个级别下链接到init.d的一些K#或S#软链接。
+       要知道哪个脚本在哪个级别下是启动还是关闭的，可以用chkconfig命令。
+     
+       **chekconfig**
+     
+       1. 查看  chkconfig --list [name]
+     
+       2. 添加  chkconfig --add name
+     
+          ```
+          [root@localhost ~]# cat /etc/rc.d/init.d/testsrv2
+          #!/bin/bash
+          #chkconfig: 3456 44 22
+          #description: test srv
+          echo "srv test"
+          [root@localhost ~]# chmod +x /etc/rc.d/init.d/testsrv2
+          [root@localhost ~]# ll /etc/rc.d/init.d/testsrv2
+          -rwxr-xr-x 1 root root 74 2018-04-08 /etc/rc.d/init.d/testsrv2
+          [root@localhost ~]# chkconfig --add testsrv2
+          [root@localhost ~]# chkconfig --list testsrv2
+          testsrv2        0:关闭  1:关闭  2:关闭  3:启用  4:启用  5:启用  6:启用
+          [root@localhost ~]# ll /etc/rc.d/rc6.d/S44testsrv2 
+          lrwxrwxrwx 1 root root 18 2018-04-08 /etc/rc.d/rc6.d/S44testsrv2 -> ../init.d/testsrv2
+          [root@localhost ~]# ll /etc/rc.d/rc0.d/K22testsrv2 
+          lrwxrwxrwx 1 root root 18 2018-04-08 /etc/rc.d/rc0.d/K22testsrv2 -> ../init.d/testsrv2
+          ```
+     
+          开机脚本的注释内容里，3456级别默认开启testsrv2脚本，没提到的012级别默认关闭，优先级为S44或K22
+     
+       3. 删除  chkconfig --del name
+     
+       4. 修改  chkconfig [--level levels] name <on|off|reset>
+          --level省略时表示2345级别
+     
+       5. 注意：正常级别下，最后启动一个服务S99local没有链接至/etc/rc.d/init.d一个服务脚本，而是指向了/etc/rc.d/rc.local脚本；因此，不便或不需写为服务脚本放置于/etc/rc.d/init.d/目录，且又想开机时自动运行的命令，可直接放置于/etc/rc.d/rc.local文件中。
+     
+  2. 启动终端设备，关联登录程序
+  
+     1:2345:respawn:/sbin/mingetty tty1
+     2:2345:respawn:/sbin/mingetty tty2
+     3:2345:respawn:/sbin/mingetty tty3
+     4:2345:respawn:/sbin/mingetty tty4
+     5:2345:respawn:/sbin/mingetty tty5
+     6:2345:respawn:/sbin/mingetty tty6
+  
+     表示启动6个虚拟终端;在2345级别下启动;用户在终端Logout后，这个终端不会没，而会立即在重启一个终端给用户登录，这就是respawn;Mingetty会自动调用login程序,login程序显示登录提示符给你，给你验证账号密码正确后，给你启动默认shell进程。
+     
+  3. 系统初始化脚本：/etc/rc.d/rc.sysinit
+  
+     (1) 设置主机名；
+     (2) 设置欢迎信息；
+     (3) 激活udev和selinux;
+     (4) 挂载/etc/fstab文件中定义的文件系统；
+     (5) 检测根文件系统，并以读写方式重新挂载根文件系统；
+     (6) 设置系统时钟；
+     (7) 激活swap设备；
+     (8) 根据/etc/sysctl.conf文件设置内核参数；
+     (9) 激活lvm及software raid设备；
+     (10) 加载额外设备的驱动程序；
+     (11) 清理操作；
+     
+     ==rc.sysinit脚本要细看，看懂，可用于学shell编程==
+  
+- 总结：
+  
+  /sbin/init --> (/etc/inittab) --> 设置默认运行级别 --> 运行系统初始脚本、完成系统初始化 --> 关闭对应下需要关闭的服务，启动需要启动服务 --> 设置登录终端
+  
+  
+#### CentOS 6
+
+init程序是upstart，但依然命名为init，其配置文件：
+/etc/inittab，os6inittab文件下只有这一行`id:5:initdefault:`，这个文件是centos在组织时为了方便用户改默认级别而有意设定的，其实6的配置文件主要是/etc/init/*.conf
+
+``` 
+[root@pirate init.d]# cd /etc/init
+[root@pirate init]# ls
+ck-log-system-restart.conf  rcS.conf
+ck-log-system-start.conf    rcS-emergency.conf
+ck-log-system-stop.conf     rcS-sulogin.conf
+control-alt-delete.conf     readahead-collector.conf
+init-system-dbus.conf       readahead.conf
+kexec-disable.conf          readahead-disable-services.conf
+plymouth-shutdown.conf      serial.conf
+prefdm.conf                 splash-manager.conf
+quit-plymouth.conf          start-ttys.conf
+rc.conf                     tty.conf
+[root@pirate init]# cat rc.conf
+# rc - System V runlevel compatibility
+#
+# This task runs the old sysv-rc runlevel scripts.  It
+# is usually started by the telinit compatibility wrapper.
+#
+# Do not edit this file directly. If you want to change the behaviour,
+# please create a file rc.override and put your changes there.
+
+start on runlevel [0123456]
+
+stop on runlevel [!$RUNLEVEL]
+
+task
+
+export RUNLEVEL
+console output
+exec /etc/rc.d/rc $RUNLEVEL
+```
+
+rc.conf是启动服务的，rcS.conf是启动脚本的。
+不用专门学习upstart语法，因为7版本大变化，而且大多数时候是改服务脚本:/etc/rc.d/init.d/*
+
+-  CentOS 6启动流程：
+    		POST --> Boot Sequence(BIOS) --> Boot Loader (MBR) --> Kernel(ramdisk) --> rootfs --> switchroot --> /sbin/init -->(/etc/inittab, /etc/init/*.conf) --> 设定默认运行级别 --> 系统初始化脚本 --> 关闭或启动对应级别下的服务 --> 启动终端
+
+  
+
+  ### Grub
+
+grub: GRand Unified Bootloader
+
+grub 0.x: grub legacy
+
+grub 1.x: grub2  完全重写的版本，只是在某些特性上再兼容gurb legacy
+
+1. grub legacy
+
+   stage1: 安装在mbr中
+   stage1_5: mbr之后的扇区，给grub提供文件系统驱动，让stage1中的bootloader能识别stage2所在的分区上的文件系统；
+   stage2：磁盘分区(/boot/grub/)，此磁盘分区上不单有第二阶段，还有内核文件以及ramdisk等等，此阶段是那个可编辑的grub界面
+
+   配置文件：/boot/grub/grub.conf <-- /etc/grub.conf
+
+2. grub的命令行接口
+
+   **grub的作用无非就是加载用户所选定的内核，关键是内核存在于哪个磁盘哪个分区**。
+
+   help: 获取帮助列表
+   help KEYWORD: 详细帮助信息
+   find (hd#,#)/PATH/TO/SOMEFILE：
+   root (hd#,#)  不是指根文件系统所在的设备，而是grub第二阶段所在的磁盘分区
+   kernel /PATH/TO/KERNEL_FILE: 设定本次启动时用到的内核文件；额外还可以添加许多内核支持使用的cmdline参数；
+   例如：init=/path/to/init, selinux=0
+   initrd /PATH/TO/INITRAMFS_FILE: 设定为选定的内核提供额外文件的ramdisk；ramdisk必须与内核版本号完全匹配。
+   boot: 引导启动选定的内核；
+   
+   > 手动在grub命令行接口启动系统：
+   > 				grub> root (hd#,#)
+   > 				grub> kernel /vmlinuz-VERSION-RELEASE ro root=/dev/DEVICE 
+   > 				grub> initrd /initramfs-VERSION-RELEASE.img
+   > 				grub> boot
+   
+3. 配置文件：/boot/grub/grub.conf
+
+   手动用命令行接口启动系统比较麻烦，所以有配置文件事先配好那个grub启动页面。
+
+   ``` shell
+   # Note that you do not have to rerun grub after making changes to this file
+   # NOTICE:  You have a /boot partition.  This means that
+   #          all kernel and initrd paths are relative to /boot/, eg.
+   #          root (hd0,0)
+   #          kernel /vmlinuz-version ro root=/dev/sda2
+   #          initrd /initrd-[generic-]version.img
+   #boot=/dev/sda1
+   
+   #password选项可以用openssl命令，但用grub-md5-crypt命令更方便。
+   default=0
+   timeout=5
+   splashimage=(hd0,0)/grub/hubble.xpm.gz
+   password --md5 $1$3rS1B0$UQlc0ljZr2bNT5Qajj0Ev1
+   hiddenmenu
+   title CentOS 6 (2.6.32-696.el6.x86_64)
+           root (hd0,0) #0表示第1块硬盘
+           kernel /vmlinuz-2.6.32-696.el6.x86_64 ro root=UUID=f8936b5e-5671-4f57-a704
+   -cd5e7a815e1b rd_NO_LUKS  KEYBOARDTYPE=pc KEYTABLE=us rd_NO_MD crashkernel=auto LA
+   NG=zh_CN.UTF-8 rd_NO_LVM rd_NO_DM rhgb quiet
+           initrd /initramfs-2.6.32-696.el6.x86_64.img
+   #second grub
+   title grubLearning-CentOs6 (2.6.32-696.el6.x86_64)
+           root (hd0,0)
+           kernel /vmlinuz-2.6.32-696.el6.x86_64 ro root=UUID=f8936b5e-5671-4f57-a704
+   -cd5e7a815e1b rd_NO_LUKS  KEYBOARDTYPE=pc KEYTABLE=us rd_NO_MD crashkernel=auto LA
+   NG=zh_CN.UTF-8 rd_NO_LVM rd_NO_DM rhgb quiet
+           initrd /initramfs-2.6.32-696.el6.x86_64.img
+           password --md5 $1$3rS1B0$UQlc0ljZr2bNT5Qajj0Ev1
+   ```
+
+4. 进入单用户模式
+
+   (1) 编辑grub菜单(选定要编辑的title，而后使用e命令);
+   (2) 在选定的kernel后附加1, s, S或single都可以；
+   (3) 在kernel所在行，键入“b”命令；
+   
+5. 安装grub
+
+   场景1：双系统下重装win10，grub被覆盖，将硬盘拆下来装到其他主机上，给这个硬盘新装个grub。
+
+   （1）在正常主机上的/mnt/boot目录挂载没有grub的那个硬盘sdc；
+
+   （2）给其安装grub，指定根目录是/mnt，grub-install会自己找寻boot目录；(如果sdc没有内核文件，也一并复制给它)
+
+   （3）配置grub.conf
+
+   （4）系统要跑起来，还需要根文件系统和bash
+
+   （5）额外加一项给grub.conf,限定init是/bin/bash而不是/sbin/init
+
+   ``` shell
+   #(1)
+   [root@pirate ~]# mkdir /mnt/boot
+   [root@pirate ~]# mount /dev/sdc1 /mnt/boot
+   [root@pirate ~]# ls /mnt/boot
+   lost+found
+   #(2)
+   [root@pirate ~]# grub-install --root-directory=/mnt /dev/sdc
+   Probing devices to guess BIOS drives. This may take a long time.
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Unknown partition table signature
+   Installation finished. No error reported.
+   This is the contents of the device map /mnt/boot/grub/device.map.
+   Check if this is correct or not. If any of the lines is incorrect,
+   fix it and re-run the script `grub-install'.
+   
+   (fd0)   /dev/fd0
+   (hd0)   /dev/sda
+   (hd1)   /dev/sdb
+   (hd2)   /dev/sdc
+   [root@pirate ~]# ls /mnt/boot
+   grub  lost+found
+   [root@pirate ~]# ls /mnt/boot/grub
+   device.map     ffs_stage1_5      minix_stage1_5     stage2           xfs_stage1_5
+   e2fs_stage1_5  iso9660_stage1_5  reiserfs_stage1_5  ufs2_stage1_5
+   fat_stage1_5   jfs_stage1_5      stage1             vstafs_stage1_5
+   [root@pirate ~]# cp /boot/vmlinuz-2.6.32-696.el6.x86_64 /mnt/boot/vmlinuz
+   [root@pirate ~]# cp /boot/initramfs-2.6.32-696.el6.x86_64.img /mnt/boot/initramfs.img
+   #(3)
+   [root@pirate ~]# vim /mnt/boot/grub/grub.conf
+   default=0
+   timeout=5
+   title grub-instll-Learning Centos6
+           root (hd0,0) #这块硬盘装会原主机，是原主机的第一块硬盘
+           kernel /vmlinuz ro root=/dev/sda2 #这里的root是指真正根文件系统的根，sdc2装回原主机是变成sda2
+           initrd /initramfs.img
+   #(4)
+   [root@pirate ~]# mkdir /mnt/sysroot
+   [root@pirate ~]# mount /dev/sdc2 /mnt/sysroot
+   [root@pirate ~]# cd /mnt/sysroot
+   [root@pirate sysroot]# mkdir -pv etc bin sbin lib lib64 dev proc sys tap var usr home root mnt media
+   mkdir: 已创建目录 "etc"
+   mkdir: 已创建目录 "bin"
+   mkdir: 已创建目录 "sbin"
+   mkdir: 已创建目录 "lib"
+   mkdir: 已创建目录 "lib64"
+   mkdir: 已创建目录 "dev"
+   mkdir: 已创建目录 "proc"
+   mkdir: 已创建目录 "sys"
+   mkdir: 已创建目录 "tap"
+   mkdir: 已创建目录 "var"
+   mkdir: 已创建目录 "usr"
+   mkdir: 已创建目录 "home"
+   mkdir: 已创建目录 "root"
+   mkdir: 已创建目录 "mnt"
+   mkdir: 已创建目录 "media"
+   [root@pirate sysroot]# ldd /bin/bash  #查询bash程序需要哪些库文件，然后相应复制给sdc2
+           linux-vdso.so.1 =>  (0x00007ffe7eb25000) #第一个.so只是库文件的访问入口
+           libtinfo.so.5 => /lib64/libtinfo.so.5 (0x00000033d5000000)
+           libdl.so.2 => /lib64/libdl.so.2 (0x00000033cd000000)
+           libc.so.6 => /lib64/libc.so.6 (0x00000033cd400000)
+           /lib64/ld-linux-x86-64.so.2 (0x00000033ccc00000)
+   [root@pirate sysroot]# cp /lib64/libtinfo.so.5 /mnt/sysroot/lib64/
+   [root@pirate sysroot]# cp /lib64/libdl.so.2 /mnt/sysroot/lib64/
+   [root@pirate sysroot]# cp /lib64/libc.so.6 /mnt/sysroot/lib64/ 
+   [root@pirate sysroot]# cp /lib64/ld-linux-x86-64.so.2 /mnt/sysroot/lib64/
+   [root@pirate ~]# chroot /mnt/sysroot/ #测试能否使用bash
+   bash-4.1# 
+   bash-4.1# ls
+   bash: ls: command not found
+   bash-4.1# exit
+   exit
+   #(5)
+   [root@pirate ~]# vim /mnt/boot/grub/grub.conf
+   default=0
+   timeout=5
+   title grub-instll-Learning Centos6
+           root (hd0,0)
+           kernel /vmlinuz ro root=/dev/sda2 init=/bin/bash
+           initrd /initramfs.img
+   [root@pirate ~]# sync
+   ```
+
+   场景2：本机的grub被自己敲坏了，但还没重启。
+   
+   （1）手动吧本机磁盘mbr上的bootloader敲坏，只破坏前446个字节而不破坏分区表；
+   
+   （2）第一种修复方法：grub-intall命令安装；[并不要求指定的根下有boot目录、grub目录及文件]
+   
+   （3）第二种：敲grub进入grub界面，然后setup安装。[要求hd#上有grub目录，里面stage1,1,5,2都得存在]
+   
+   ``` shell
+   #(1)备份，写入
+   [root@pirate ~]# dd if=/dev/sda of=/root/mbr.bak count=1 bs=512
+   记录了1+0 的读入
+   记录了1+0 的写出
+   512字节(512 B)已复制，0.333071 秒，1.5 kB/秒
+   [root@pirate ~]# dd if=/dev/zero of=/dev/sda bs=200 count=1
+   记录了1+0 的读入
+   记录了1+0 的写出
+   200字节(200 B)已复制，0.000385927 秒，518 kB/秒
+   #(2)
+   [root@pirate ~]# grub-install --root-directory=/ /dev/sda
+   Installation finished. No error reported.
+   This is the contents of the device map //boot/grub/device.map.
+   Check if this is correct or not. If any of the lines is incorrect,
+   fix it and re-run the script `grub-install'.
+   
+   # this device map was generated by anaconda
+   (hd0)     /dev/sda
+   [root@pirate ~]# 
+   #(3)再破坏，然后进入grub界面setup
+   [root@pirate ~]# dd if=/dev/zero of=/dev/sda bs=200 count=1
+   记录了1+0 的读入
+   记录了1+0 的写出
+   200字节(200 B)已复制，0.000324817 秒，616 kB/秒
+   [root@pirate ~]# grub
+   Probing devices to guess BIOS drives. This may take a long time.
+   Unknown partition table signature
+   
+   
+       GNU GRUB  version 0.97  (640K lower / 3072K upper memory)
+   
+    [ Minimal BASH-like line editing is supported.  For the first word, TAB
+      lists possible command completions.  Anywhere else TAB lists the possible
+      completions of a device/filename.]
+   grub> root (hd0,0)
+   root (hd0,0)
+    Filesystem type is ext2fs, partition type 0x83
+   grub> setup (hd0)
+   setup (hd0)
+    Checking if "/boot/grub/stage1" exists... no
+    Checking if "/grub/stage1" exists... yes
+    Checking if "/grub/stage2" exists... yes
+    Checking if "/grub/e2fs_stage1_5" exists... yes
+    Running "embed /grub/e2fs_stage1_5 (hd0)"...  27 sectors are embedded.
+   succeeded
+    Running "install /grub/stage1 (hd0) (hd0)1+27 p (hd0,0)/grub/stage2 /grub/grub.conf"... succeeded
+   Done.
+   grub> quit
+   quit
+   [root@pirate ~]# sync
+   ```
+   
+   ![grub1](https://raw.githubusercontent.com/strawleave/PicBase/master/内核启动了selinux而boot时找不到selinux策略.jpg)
+   
+   ![grub1](https://raw.githubusercontent.com/strawleave/PicBase/master/Grub界面手动启动内核.jpg)
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## DNS and BIND
 
 
@@ -750,7 +1286,9 @@ ns2.straw.net.	IN	A	2.2.2.2
 
   - 应该有两个或以上(假如ipv6)的解析库，实现localhost和127.0.0.1的互相解析;
 
-  - 主要有资源记录组成，编辑完之后检查：
+  - 出现的内容：(1)宏定义[比如开头的$TTL 86400]；(2)资源记录
+
+  - 主要由资源记录组成，编辑完之后检查：
 
     (1)named-checkconf
 
@@ -762,9 +1300,14 @@ ns2.straw.net.	IN	A	2.2.2.2
 
   ![1548496260821](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\1548496260821.png)
 
-  添加完RR后，还没结束，pa aux | grep named可以看出named进程的属主是named，而：
+  添加完RR后，还没结束，ps aux | grep named可以看出named进程的属主是named，而/var/named下的文件属主都是root,属组都是named，但自己创建的zone文件则权限是root:root，这会导致named用户无权限访问straw.net.zone：
 
   ```shell
+  [root@L named]# ps aux | grep named
+  named     22196  0.0  1.5 240224 15348 ?        Ssl  07:59   0:00 /usr/sbin/named -u named -c /etc/named.conf
+  root      22272  0.0  0.0 112676   976 pts/0    S+   08:26   0:00 grep --color=auto named
+  [root@L ~]# ll /etc/named.conf  #主配置文件表明name最基本的权限形式root:named
+  -rw-r-----. 1 root named 1830 7月  16 08:05 /etc/named.conf
   [root@L named]# ll /var/named
   total 28
   drwxrwx---. 2 named named   49 Jan 13 17:27 data
@@ -778,8 +1321,6 @@ ns2.straw.net.	IN	A	2.2.2.2
   drwxrwx---. 2 named named    6 Oct 31 08:29 slaves
   -rw-r--r--. 1 root  root   347 Jan 26 17:41 straw.net.zone
   ```
-
-  区域文件权限不对，所以：
 
   ``` shell
   [root@L named]# chmod 640 straw.net.zone 
@@ -802,9 +1343,10 @@ ns2.straw.net.	IN	A	2.2.2.2
 - 测试命令
 
   - dig
-
+dig用于测试dns系统，因此，不会查询hosts文件进行解析；
     dig [-t type] name [@SERVER] [query options]
-
+  dig时如果不带@某主机，则默认是向/etc/resolve.conf里写的namesever去请求解析。
+  
   
 
 
@@ -1039,7 +1581,277 @@ ns2.straw.net.	IN	A	2.2.2.2
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 进程管理工具
 
-- pstree
-- ps
+1. pstree
+
+2. ps:report a snapshot of the current processes. 报告静态信息
+   伪文件系统proc，只是被内核映射成目录和文件而已
+   ![proc](https://raw.githubusercontent.com/strawleave/PicBase/master/proc伪文件系统.png)
+
+   每一个目录名代表进程号，每一个目录里面的文件代表一个进程相关的状态信息。
+   每个目录下的cmdline文件内容代表该进程是由哪一个命令启动的。
+   
+3. pgrep,pkill
+   pgrep -u root -l
+   pgrep sshd
+
+4. top,htop
+
+5. vmstat
+
+6. pmap
+   报告进程从线性地址到物理地址的映射关系
+   pmap pid
+
+7. dstat
+   dstat -C 0,1,total -D total,sda
+   dstat -l  动态显示过去1分钟、5分钟、15分钟的平均负载
+   dstat -m  内存显示
+   dstat -n  网络收发显示
+   dstat --tcp   --udp   --raw    --unix   --socket
+   dstat --ipc  显示进程间通信
+   dstat --top-cpu   --top-io   --top-mem   --top-latency 显示延迟最大的进程
+
+8. kill
+   向进程发送控制信号，以实现对进程管理
+   显示可发送的信号：kill -l  或  man 7 signal
+
+   - 常用信号：
+     1) SIGHUP: 无须关闭进程而让其重读配置文件；(对服务端管理进程很重要)
+     2) SIGINT: 中止正在运行的进程；相当于Ctrl+c；
+     9) SIGKILL: 杀死正在运行的进程；(直接杀)
+     15) SIGTERM：终止正在运行的进程；(人道处死)
+     18) SIGCONT：让其继续运行
+     19) SIGSTOP：让其处于停止态
+   - 指定信号的方法：
+     (1) 信号的数字标识；1, 2, 9
+     (2) 信号完整名称；SIGHUP
+     (3) 信号的简写名称；HUP
+   - 向进程发信号：
+     kill [-SIGNAL] PID...
+   - 终止“名称”之下的所有进程：
+     killall [-SIGNAL] Program
+     比如httpd无论何时都保持至少5个进程，杀一个起一个，可以用killall -15 httpd
+
+9. Linux的作业控制jobs
+
+   - 前台作业：通过终端启动，且启动后一直占据终端；(比如top)
+     后台作业：可以通过终端启动，但启动后即转入后台运行（释放终端）；
+
+   - 如何让作业运行于后台？
+     (1) 运行中的作业
+     Ctrl+z  (fg命令调回)
+     (2) 尚未启动的作业
+     COMMAD &  (让其在启动之后立即转为后台)
+
+     注：此类作业虽然被送往后台运行，但其依然与终端相关；如果希望送往后台后，剥离与终端的关系：nohup COMMAD &
+     
+   - 查看被ctrl+z的所有作业,用jobs命令
+   
+- 作业控制
+   fg [[%]JOB_NUM]：把指定的后台作业调回前台；
+     bg [[%]JOB_NUM]：让送往后台的作业在后台继续运行；
+   kill [%JOB_NUM]：终止指定的作业；(%不能省略，不然会被当成PID)
+   
+     与终端无关的job，使用ctrl+c是没法停止的，其信号捕获不到。
+     ctrl+c信号只能通过终端捕获后送给进程
+   
+10.      进程优先级调整
+         用户空间可以通过调整进程的Nice值来改变它的优先级。
+         手动修改是静态优先级，100-139，
+         nice值范围是-20-19，
+         如果内核发现某个进程占用过多cpu，会自动惩罚降低其优先级，
+         进程默认启动时的nice值为0，优先级为120;
+         优先级数字越小，优先级越高。
+         nice -n 5 htop
+         ps axo pid,comm,nice
+         renice -n  2 PID
+         普通用户只能调高nice值，即调低优先级；管理员可随意调整。
+
+
+
+## 计划任务
+
+未来的某时间点执行一次任务：at, batch
+周期性运行某任务: cron
+
+
+
+### at
+
+```
+[root@pirate ~]# at 09:28
+at> ls /var
+at> cat /etc/fstab
+at> <EOT>
+job 1 at 2018-12-26 09:28
+```
+
+at某一时间点后，写完命令，ctrl+d提交，到时的结果会以邮件形式传送。
+
+- 电子邮件服务：
+  smtp: simple mail transmission protocol, 只能用于传送邮件；
+  pop3: Post Office Protocol, 邮筒；
+  imap4：Internet Mail Access Protocol, 邮筒，更强大复杂些。
+
+- Linux主机自行内部有很多维护工作，维护结果需要通知给相关账户。
+  使用ss -tnl就知道，默认有监听127.0.0.1:25，说明该smtp协议不准备与外界联系，只用于本地一个账号发给另一个账号。这里连"邮筒"都用不上，用的是/var/spool/mail的目录，mailbox模式。
+  邮件放置方式有两种：mailbox(邮件数据流在一个文件里存放)和mailderectory(每一封邮件都是用单独的文件在一个目录下存放)
+
+- 帮用户收发邮件的服务：
+  mailx - send and receive Internet mail
+  MUA：Mail User Agent
+
+  ```shell
+  #发给自己
+  [root@pirate ~]# mailx -s "hello" root@localhost
+  pirate
+  qianli
+  jinji
+  EOT
+  [root@pirate ~]# mail
+  Heirloom Mail version 12.4 7/29/08.  Type ? for help.
+  "/var/spool/mail/root": 2 messages 1 new
+      1 root                  Wed Dec 26 09:28  50/1393  "Output from your job   "
+  >N  2 root                  Wed Dec 26 10:05  21/612   "hello"
+  & 2
+  
+  #发给其他用户                               
+  [root@pirate ~]# mailx -s "he" yao@localhost < mail.txt
+  [root@pirate ~]# su - yao
+  [yao@pirate ~]$ mail
+  Heirloom Mail version 12.4 7/29/08.  Type ? for help.
+  "/var/spool/mail/yao": 1 message 1 new
+  >N  1 root                  Wed Dec 26 10:09  18/613   "he"
+  & 
+  ```
+
+  > mailx [-s 'SUBJECT'] username[@hostname]
+  > 邮件正文的生成：
+  > (1) 直接给出，Ctrl+d;
+  > (2) 输入重定向；
+  > (3) 通过管道；
+  > 	echo -e "How are you?\nHow old are you?" | mail
+
+- 注意环境变量，给命令时建议用绝对路径，或脚本里自己定义PATH
+
+- 常用选项
+  -q QUEUE: 有队列a,b,c...
+  -l: 列出指定队列中等待运行的作业；相当于atq
+  -d: 删除指定的作业；相当于atrm
+  -c: 查看具体作业任务；
+  -f /path/from/somefile：从指定的文件中读取任务；
+
+  ``` 
+  [root@pirate ~]# at now+2minutes
+  at> cat /etc/issue
+  at> echo "hzw:^H"
+  at> <EOT>
+  job 2 at 2018-12-26 10:27
+  [root@pirate ~]# at -l
+  2       2018-12-26 10:27 a root
+  [root@pirate ~]# atq
+  2       2018-12-26 10:27 a root
+  [root@pirate ~]# at -d 2
+  [root@pirate ~]# at -l
+  
+  [root@pirate ~]# at -f at.task now+10minutes
+  job 4 at 2018-12-26 10:44
+  ```
+
+
+
+### batch
+
+让系统自行选择空闲时间去执行此处指定的任务
+
+
+
+### cron
+
+- ``` 
+  [root@pirate ~]# rpm -qa | grep cron
+  cronie-anacron-1.4.4-16.el6_8.2.x86_64
+  cronie-1.4.4-16.el6_8.2.x86_64
+  crontabs-1.10-33.el6.noarch
+  ```
+
+  相关程序包
+  cronie: 主程序包，提供了crond守护进程及相关辅助工具；
+  cronie-anacron：cronie的补充程序；用于监控cronie任务执行状况；如cronie中的任务在过去该运行的时间点未能正常运行，则anacron会随后启动一次此任务；
+  crontabs：包含CentOS提供系统维护任务,这些任务在cronnie或**crond中运行**，所以应确保crond守护处于运行状态。
+
+  
+
+- 计划要周期性执行的任务提交给crond，由其来实现到点运行。系统cron任务：
+  系统维护作业:：/etc/crontab
+  用户cron任务：crontab命令
+  
+- Example of job definition:
+
+  ``` 
+  .---------------- minute (0 - 59)
+  |  .------------- hour (0 - 23)
+  |  |  .---------- day of month (1 - 31)
+  |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+  |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR 
+  |  |  |  |  |
+  *  *  *  *  * user-name  command to be executed
+  ```
+
+- 时间表示法：
+  (1) 特定值；
+  给定时间点有效取值范围内的值；
+  例如：晚上9点10分运行echo命令；
+  10 21 * * *	 gentoo /bin/echo "Howdy!"
+
+  (2) *
+  给定时间点上有效取值范围内的所有值；
+  表示“每...”；
+
+  (3) 离散取值：,
+  #,#,#
+  (4) 连续取值：-
+  #-#
+  (5) 在指定时间范围上，定义步长：
+  /#: #即为步长
+  例1：每3分钟： */3 * * * *
+
+  例2：* */3 * * * 每3小时到了，那一小时内每分钟都执行一次，因为分钟那里是*；
+
+  0 */3 * * *  这个每3小时执行一次，因为分钟那里是一个特定时间点。
+
+- 用户cron
+  crontab命令定义，每个用户都有专用的cron任务文件：/var/spool/cron/USERNAME
+
+  注意：运行结果以邮件通知给相关用户；
+  (1) COMMAND > /dev/null
+  (2) COMMAND &> /dev/null
+
+  对于cron任务来讲，%有特殊用途；如果在命令中要使用%，则需要转义；不过，如果把%放置于单引号中，也可以不用转义；
+
+  
+
+  
+
